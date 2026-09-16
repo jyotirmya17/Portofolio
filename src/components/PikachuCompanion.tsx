@@ -1,9 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Zap } from 'lucide-react';
 
 interface PikachuCompanionProps {
-  enabled: boolean;
-  onToggle: () => void;
+  enabled?: boolean;
+  onToggle?: () => void;
 }
 
 /**
@@ -17,7 +16,7 @@ interface PikachuCompanionProps {
  */
 type PikachuState = 'idle' | 'running' | 'turning' | 'sleeping' | 'thunderbolt' | 'happy';
 
-export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled, onToggle }) => {
+export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled = true, onToggle }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const spriteSheetRef = useRef<HTMLImageElement | null>(null);
@@ -454,44 +453,6 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled, onT
 
   return (
     <>
-      {/* Floating Toggle Button (Bottom-Right, non-obtrusive, accessible, mobile-optimized) */}
-      <div
-        style={{
-          position: 'fixed',
-          bottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
-          right: 'max(16px, env(safe-area-inset-right, 16px))',
-          zIndex: 900,
-        }}
-      >
-        <button
-          onClick={onToggle}
-          style={{
-            background: enabled ? 'rgba(255, 212, 71, 0.18)' : 'rgba(25, 17, 40, 0.92)',
-            border: enabled ? '1.5px solid var(--butter)' : '1.5px solid var(--line)',
-            color: enabled ? 'var(--butter)' : 'var(--fg-soft)',
-            padding: '7px 13px',
-            borderRadius: '999px',
-            fontSize: '12px',
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            cursor: 'pointer',
-            backdropFilter: 'blur(8px)',
-            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
-            transition: 'all 0.15s ease',
-            touchAction: 'manipulation',
-          }}
-          className="hover:scale-105 active:scale-95"
-          id="btn-pikachu-toggle"
-          title="Toggle Pikachu website companion"
-          aria-label="Toggle Pikachu website companion"
-        >
-          <Zap size={13} style={{ fill: enabled ? 'currentColor' : 'none' }} />
-          <span>Pikachu {enabled ? 'ON' : 'OFF'}</span>
-        </button>
-      </div>
-
       {/* Autonomous Animated Pikachu Character */}
       {enabled && (
         <div

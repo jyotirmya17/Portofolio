@@ -23,10 +23,7 @@ export default function App() {
   const [toastVisible, setToastVisible] = useState(false);
   const [inspectProjectId, setInspectProjectId] = useState<string | null>(null);
   const [activeBlogPost, setActiveBlogPost] = useState<BlogPost | null>(null);
-  const [pikachuActive, setPikachuActive] = useState<boolean>(() => {
-    const saved = localStorage.getItem('pikachu_companion_active');
-    return saved !== null ? saved === 'true' : true;
-  });
+  const [pikachuActive, setPikachuActive] = useState<boolean>(true);
 
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
