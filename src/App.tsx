@@ -68,8 +68,8 @@ export default function App() {
   }, [showToast]);
 
   const handleCopyEmail = useCallback(() => {
-    const email = 'jyotirmyasharma@gmail.com';
-    const notifySuccess = () => showToast('Email copied: jyotirmyasharma@gmail.com');
+    const email = 'jyotirmya.jm@gmail.com';
+    const notifySuccess = () => showToast('Email copied: jyotirmya.jm@gmail.com');
 
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(email).then(notifySuccess, fallbackCopy);
