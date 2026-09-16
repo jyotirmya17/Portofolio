@@ -29,61 +29,68 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled, onT
 
   // High-frequency physics & animation variables held in refs to avoid React re-render thrashing
   const physics = useRef({
-    x: 200,
-    y: 0, // calculated relative to viewport bottom
+    x: 250,
+    y: 350,
     vx: 0,
     vy: 0,
-    targetX: 300,
-    targetY: 0,
-    facing: 1 as 1 | -1, // 1 = right, -1 = left
-    desiredFacing: 1 as 1 | -1,
-    turnTimer: 0,
+    targetX: 250,
+    targetY: 350,
+    dir: 0 as 0 | 1 | 2 | 3, // 0 = Down, 1 = Left, 2 = Right, 3 = Up
     idleTimer: 0,
-    idleDuration: 180, // ~3 seconds at 60fps
+    idleDuration: 180,
     state: 'idle' as PikachuState,
     animFrame: 0,
     frameTick: 0,
     lastThunderbolt: Date.now() - 15000,
-    mouse: { x: -1000, y: -1000, lastMove: 0 },
+    mouse: { x: 250, y: 350, lastMove: Date.now(), hasMoved: false },
   });
 
   const rafRef = useRef<number | null>(null);
   const actionTimeout = useRef<number | null>(null);
 
-  // Pick a fresh horizontal destination along the lower viewport strip
-  const pickNewTarget = useCallback(() => {
-    const p = physics.current;
-    const vpW = window.innerWidth;
-    const padding = 70;
-    const minX = padding;
-    const maxX = Math.max(minX + 120, vpW - padding);
-
-    // Pick target with minimum distance to make the run meaningful
-    let newTargetX = minX + Math.random() * (maxX - minX);
-    if (Math.abs(newTargetX - p.x) < 140) {
-      newTargetX = p.x > vpW / 2 ? p.x - 220 : p.x + 220;
-    }
-    p.targetX = Math.max(minX, Math.min(maxX, newTargetX));
-
-    // Desired horizontal facing
-    p.desiredFacing = p.targetX > p.x ? 1 : -1;
-
-    // Small vertical variation (+/- 24px from base floor)
-    const baseFloor = window.innerHeight - 56;
-    p.targetY = Math.max(window.innerHeight - 110, Math.min(window.innerHeight - 38, baseFloor + (Math.random() * 32 - 16)));
-  }, []);
-
-  // Track cursor position non-intrusively for curious glances & interaction
+  // Track cursor and touch positions so Pikachu chases the cursor in 2D space
   useEffect(() => {
     const handlePointerMove = (e: PointerEvent) => {
-      physics.current.mouse = {
-        x: e.clientX,
-        y: e.clientY,
-        lastMove: Date.now(),
-      };
+      const p = physics.current;
+      p.mouse.x = e.clientX;
+      p.mouse.y = e.clientY;
+      p.mouse.lastMove = Date.now();
+      p.mouse.hasMoved = true;
+      p.targetX = e.clientX;
+      p.targetY = e.clientY;
+
+      // Wake up from sleep if cursor moves
+      if (p.state === 'sleeping') {
+        p.state = 'idle';
+        setState('idle');
+        p.idleTimer = 0;
+      }
     };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        const t = e.touches[0];
+        const p = physics.current;
+        p.mouse.x = t.clientX;
+        p.mouse.y = t.clientY;
+        p.mouse.lastMove = Date.now();
+        p.mouse.hasMoved = true;
+        p.targetX = t.clientX;
+        p.targetY = t.clientY;
+        if (p.state === 'sleeping') {
+          p.state = 'idle';
+          setState('idle');
+          p.idleTimer = 0;
+        }
+      }
+    };
+
     window.addEventListener('pointermove', handlePointerMove, { passive: true });
-    return () => window.removeEventListener('pointermove', handlePointerMove);
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('touchmove', handleTouchMove);
+    };
   }, []);
 
   // Thunderbolt execution sequence
@@ -139,9 +146,8 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled, onT
       p.state = 'idle';
       setState('idle');
       p.idleTimer = 0;
-      pickNewTarget();
     }, 1800);
-  }, [pickNewTarget]);
+  }, []);
 
   // Load the sprite sheet
   useEffect(() => {
@@ -156,13 +162,14 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled, onT
   useEffect(() => {
     if (!enabled) return;
 
-    // Initialize position near bottom-left of viewport
     const p = physics.current;
-    p.x = Math.max(100, Math.min(window.innerWidth - 100, p.x || 200));
-    p.y = window.innerHeight - 56;
-    p.targetX = p.x + 200;
-    p.targetY = p.y;
-    pickNewTarget();
+    if (!p.mouse.hasMoved) {
+      // Default to responsive position near bottom-right if cursor hasn't moved yet
+      p.x = Math.max(80, window.innerWidth - 120);
+      p.y = Math.max(80, window.innerHeight - 120);
+      p.targetX = p.x;
+      p.targetY = p.y;
+    }
 
     // Respect user's reduced-motion preference
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -177,148 +184,119 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled, onT
       const vpW = window.innerWidth;
       const vpH = window.innerHeight;
 
-      // Floor constraints
-      const floorY = vpH - 56;
-      if (p.y > floorY + 20 || p.y < floorY - 60) {
-        p.y = floorY;
-        p.targetY = floorY;
-      }
+      // 2D distance to mouse cursor target
+      const dx = p.targetX - p.x;
+      const dy = p.targetY - p.y;
+      const dist = Math.hypot(dx, dy);
 
       // STATE MACHINE UPDATE
       if (p.state === 'thunderbolt') {
         // stationary during electric discharge
         p.vx = 0;
+        p.vy = 0;
       } else if (p.state === 'happy') {
-        // Small hop physics
+        // Small joyful hop
         p.y += p.vy;
         p.vy += 0.25; // gravity
-        if (p.y > floorY) {
-          p.y = floorY;
-          p.vy = 0;
-        }
+        p.vx *= 0.85;
+        p.x += p.vx;
       } else if (p.state === 'sleeping') {
         p.vx = 0;
+        p.vy = 0;
         p.idleTimer += 1;
-        if (p.idleTimer > 280) { // ~4.5s
-          p.state = 'idle';
-          setState('idle');
-          p.idleTimer = 0;
-          p.idleDuration = 60;
-          pickNewTarget();
-        }
-      } else if (p.state === 'turning') {
-        p.turnTimer -= 1;
-        p.vx *= 0.6; // decelerate rapidly to halt
-        p.x += p.vx;
-        if (p.turnTimer <= 0) {
-          p.facing = p.desiredFacing;
+        // Wakes up if cursor moves away
+        if (dist > 65) {
           p.state = 'running';
           setState('running');
+          p.idleTimer = 0;
         }
       } else if (p.state === 'idle') {
-        p.vx *= 0.7; // friction decelerate
+        // Friction deceleration
+        p.vx *= 0.65;
+        p.vy *= 0.65;
         p.x += p.vx;
+        p.y += p.vy;
         p.idleTimer += 1;
 
-        // Check if mouse is hovering nearby; if so, face the mouse curiously!
-        const now = Date.now();
-        if (now - p.mouse.lastMove < 2000) {
-          const dxMouse = p.mouse.x - p.x;
-          if (Math.abs(dxMouse) > 30 && Math.abs(dxMouse) < 300) {
-            const mouseFacing = dxMouse > 0 ? 1 : -1;
-            if (p.facing !== mouseFacing && p.idleTimer % 30 === 0) {
-              p.facing = mouseFacing;
-            }
-          }
-        }
-
-        if (p.idleTimer >= p.idleDuration) {
-          p.idleTimer = 0;
-          pickNewTarget();
-
-          // Check if direction change requires a turning state
-          if (p.desiredFacing !== p.facing) {
-            p.state = 'turning';
-            p.turnTimer = 8; // brief 8-frame pivot
-            setState('turning');
+        // Face towards cursor while idling
+        if (dist > 15) {
+          const absDx = Math.abs(dx);
+          const absDy = Math.abs(dy);
+          if (absDx >= absDy) {
+            p.dir = dx >= 0 ? 2 : 1; // Right or Left
           } else {
-            p.state = 'running';
-            setState('running');
+            p.dir = dy >= 0 ? 0 : 3; // Down or Up
           }
         }
-      } else if (p.state === 'running') {
-        // Distance to target
-        const dx = p.targetX - p.x;
-        const dy = p.targetY - p.y;
-        const dist = Math.abs(dx);
 
-        // Check if Pikachu needs to flip direction
-        const neededFacing = dx > 0 ? 1 : -1;
-        if (neededFacing !== p.facing && dist > 40) {
-          p.desiredFacing = neededFacing;
-          p.state = 'turning';
-          p.turnTimer = 8;
-          setState('turning');
-        } else if (dist < 14) {
-          // Reached target! Choose next spontaneous behavior
-          p.state = 'idle';
-          setState('idle');
-          p.vx = 0;
+        // If mouse moves away beyond follow perimeter, pursue diagonally!
+        if (dist > 45) {
+          p.state = 'running';
+          setState('running');
           p.idleTimer = 0;
-
+        } else {
+          // If mouse is still for > 15 seconds, take a cute snooze
           const now = Date.now();
-          const canThunderbolt = now - p.lastThunderbolt > 35000;
-          const roll = Math.random();
-
-          if (canThunderbolt && roll < 0.25) {
-            p.lastThunderbolt = now;
-            executeThunderbolt();
-          } else if (roll < 0.40) {
-            // Take a quick nap
+          if (p.mouse.hasMoved && now - p.mouse.lastMove > 15000 && p.idleTimer > 400) {
             p.state = 'sleeping';
             setState('sleeping');
             p.idleTimer = 0;
-          } else {
-            // Natural pause (1.5 to 3.5 seconds)
-            p.idleDuration = 90 + Math.floor(Math.random() * 120);
           }
-        } else {
-          // Accelerate smoothly towards target
-          const maxSpeed = prefersReducedMotion ? 1.4 : 3.2;
-          const accel = 0.22;
-          const targetVx = (dx / dist) * maxSpeed;
-
-          // Ease in/out
-          if (dist < 60) {
-            // Decelerate near destination
-            p.vx += (targetVx * (dist / 60) - p.vx) * 0.18;
-          } else {
-            p.vx += (targetVx - p.vx) * accel;
-          }
-
-          p.x += p.vx;
-
-          // Gentle vertical smoothing towards targetY
-          p.y += (p.targetY - p.y) * 0.08;
         }
+      } else if (p.state === 'running') {
+        // When Pikachu reaches comfortable follow distance beside cursor
+        if (dist < 36) {
+          p.state = 'idle';
+          setState('idle');
+          p.idleTimer = 0;
+        } else {
+          // 360-degree unit vector for fluid diagonal travel in all directions
+          const dirX = dx / dist;
+          const dirY = dy / dist;
 
-        // Boundary guard
-        if (p.x < 40) {
-          p.x = 40;
-          p.targetX = vpW / 2;
-          p.desiredFacing = 1;
-          p.state = 'turning';
-          p.turnTimer = 6;
-          setState('turning');
-        } else if (p.x > vpW - 40) {
-          p.x = vpW - 40;
-          p.targetX = vpW / 2;
-          p.desiredFacing = -1;
-          p.state = 'turning';
-          p.turnTimer = 6;
-          setState('turning');
+          // Adaptive speed: sprint when far, run when medium, walk when close
+          let maxSpeed = prefersReducedMotion ? 2.0 : 4.8;
+          let accel = 0.24;
+
+          if (!prefersReducedMotion) {
+            if (dist > 360) {
+              maxSpeed = 8.5; // sprint to catch up
+              accel = 0.30;
+            } else if (dist > 160) {
+              maxSpeed = 6.2; // brisk run
+              accel = 0.26;
+            } else if (dist < 70) {
+              maxSpeed = Math.max(2.0, (dist / 70) * 4.2); // smooth deceleration
+              accel = 0.25;
+            }
+          }
+
+          const targetVx = dirX * maxSpeed;
+          const targetVy = dirY * maxSpeed;
+
+          p.vx += (targetVx - p.vx) * accel;
+          p.vy += (targetVy - p.vy) * accel;
+
+          // Move diagonally along both x and y axes
+          p.x += p.vx;
+          p.y += p.vy;
+
+          // Determine 4-way facing row based on movement vector with hysteresis
+          const absVx = Math.abs(p.vx);
+          const absVy = Math.abs(p.vy);
+          if (absVx > absVy * 1.15) {
+            p.dir = p.vx > 0 ? 2 : 1; // 2 = Right, 1 = Left
+          } else if (absVy > absVx * 1.15) {
+            p.dir = p.vy > 0 ? 0 : 3; // 0 = Down, 3 = Up
+          } else if (p.dir === undefined || p.dir === null) {
+            p.dir = absVx >= absVy ? (p.vx >= 0 ? 2 : 1) : (p.vy >= 0 ? 0 : 3);
+          }
         }
       }
+
+      // Safe viewport boundary
+      p.x = Math.max(32, Math.min(vpW - 32, p.x));
+      p.y = Math.max(32, Math.min(vpH - 32, p.y));
 
       // SPRITE CANVAS RENDERING (Zero React overhead)
       const canvas = canvasRef.current;
@@ -332,7 +310,7 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled, onT
           p.frameTick += 1;
 
           let col = 0;
-          let row = 0;
+          let row = p.dir ?? 0;
 
           // Row 0 = Down, Row 1 = Left, Row 2 = Right, Row 3 = Up
           // In the sprite sheet:
@@ -340,17 +318,26 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled, onT
           // cols 3..5 = Run (frame 0, 1, 2)
           // cols 6..8 = Sprint / Fast run
           if (p.state === 'running') {
-            row = p.facing === 1 ? 2 : 1;
-            // Cycle 4-step walk/run cycle [1, 2, 1, 0]
-            const step = Math.floor(p.frameTick / 6) % 4;
-            const cycle = [3, 4, 3, 5]; // use dynamic running frames from cols 3..5
-            col = cycle[step];
-          } else if (p.state === 'turning') {
-            // Turning pivot frame (looking front-angled)
-            row = 0;
-            col = 1;
+            row = p.dir;
+            const currentSpeed = Math.hypot(p.vx, p.vy);
+            if (currentSpeed > 6.0) {
+              // Sprint cycle (cols 6..8)
+              const step = Math.floor(p.frameTick / 4) % 4;
+              const cycle = [6, 7, 6, 8];
+              col = cycle[step];
+            } else if (currentSpeed > 3.0) {
+              // Run cycle (cols 3..5)
+              const step = Math.floor(p.frameTick / 5) % 4;
+              const cycle = [3, 4, 3, 5];
+              col = cycle[step];
+            } else {
+              // Walk cycle (cols 0..2)
+              const step = Math.floor(p.frameTick / 7) % 4;
+              const cycle = [0, 1, 0, 2];
+              col = cycle[step];
+            }
           } else if (p.state === 'sleeping') {
-            // Sleeping curled pose (facing forward/resting)
+            // Sleeping pose
             row = 0;
             col = 1;
           } else if (p.state === 'happy') {
@@ -362,9 +349,10 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled, onT
             row = 0;
             col = 1;
           } else {
-            // IDLE: gentle breath / subtle head look
-            row = p.facing === 1 ? 2 : 1;
-            col = 1; // standing neutral pose
+            // IDLE: standing neutral pose facing cursor direction (with subtle wag)
+            row = p.dir;
+            const idleStep = Math.floor(p.frameTick / 30) % 8;
+            col = idleStep === 0 ? 0 : 1;
           }
 
           // Sprite slice dimensions: 32x32 per frame
@@ -395,7 +383,7 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled, onT
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (actionTimeout.current) clearTimeout(actionTimeout.current);
     };
-  }, [enabled, pickNewTarget, executeThunderbolt]);
+  }, [enabled, executeThunderbolt]);
 
   return (
     <>
