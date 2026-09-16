@@ -48,9 +48,10 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled, onT
   const rafRef = useRef<number | null>(null);
   const actionTimeout = useRef<number | null>(null);
 
-  // Track cursor and touch positions so Pikachu chases the cursor in 2D space
+  // Track cursor and touch positions so Pikachu is delightfully responsive across mobile and desktop
   useEffect(() => {
     const handlePointerMove = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return; // Handled specifically by touch listeners for mobile precision
       const p = physics.current;
       p.mouse.x = e.clientX;
       p.mouse.y = e.clientY;
@@ -59,11 +60,35 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled, onT
       p.targetX = e.clientX;
       p.targetY = e.clientY;
 
-      // Wake up from sleep if cursor moves
       if (p.state === 'sleeping') {
         p.state = 'idle';
         setState('idle');
         p.idleTimer = 0;
+      }
+    };
+
+    // Mobile touch interaction: Tap or touch anywhere to call Pikachu or guide him
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        const t = e.touches[0];
+        const p = physics.current;
+        p.mouse.x = t.clientX;
+        p.mouse.y = t.clientY;
+        p.mouse.lastMove = Date.now();
+        p.mouse.hasMoved = true;
+
+        // On mobile, keep a friendly companion offset so Pikachu never blocks what the user tapped on
+        const vpW = window.innerWidth;
+        const vpH = window.innerHeight;
+        const offsetX = t.clientX < vpW / 2 ? 46 : -46;
+        p.targetX = Math.max(30, Math.min(vpW - 30, t.clientX + offsetX));
+        p.targetY = Math.max(45, Math.min(vpH - 70, t.clientY + 10));
+
+        if (p.state === 'sleeping') {
+          p.state = 'idle';
+          setState('idle');
+          p.idleTimer = 0;
+        }
       }
     };
 
@@ -75,8 +100,13 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled, onT
         p.mouse.y = t.clientY;
         p.mouse.lastMove = Date.now();
         p.mouse.hasMoved = true;
-        p.targetX = t.clientX;
-        p.targetY = t.clientY;
+
+        const vpW = window.innerWidth;
+        const vpH = window.innerHeight;
+        const offsetX = t.clientX < vpW / 2 ? 46 : -46;
+        p.targetX = Math.max(30, Math.min(vpW - 30, t.clientX + offsetX));
+        p.targetY = Math.max(45, Math.min(vpH - 70, t.clientY + 10));
+
         if (p.state === 'sleeping') {
           p.state = 'idle';
           setState('idle');
@@ -85,11 +115,28 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled, onT
       }
     };
 
+    const handleResize = () => {
+      const p = physics.current;
+      const vpW = window.innerWidth;
+      const vpH = window.innerHeight;
+      p.x = Math.max(30, Math.min(vpW - 30, p.x));
+      p.y = Math.max(45, Math.min(vpH - 70, p.y));
+      p.targetX = Math.max(30, Math.min(vpW - 30, p.targetX));
+      p.targetY = Math.max(45, Math.min(vpH - 70, p.targetY));
+    };
+
     window.addEventListener('pointermove', handlePointerMove, { passive: true });
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
     window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('resize', handleResize, { passive: true });
+    window.addEventListener('orientationchange', handleResize, { passive: true });
+
     return () => {
       window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
     };
   }, []);
 
@@ -235,16 +282,31 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled, onT
           setState('running');
           p.idleTimer = 0;
         } else {
-          // If mouse is still for > 15 seconds, take a cute snooze
           const now = Date.now();
-          if (p.mouse.hasMoved && now - p.mouse.lastMove > 15000 && p.idleTimer > 400) {
+          const timeSinceMove = now - p.mouse.lastMove;
+          const isMobile = vpW < 768;
+
+          // Autonomous gentle roaming: On mobile (or when cursor has stopped moving for 3.5s),
+          // Pikachu periodically takes playful strolls around the safe bottom area
+          if ((isMobile || timeSinceMove > 3500) && p.idleTimer > (isMobile ? 160 : 260)) {
+            p.idleTimer = 0;
+            const roamX = 35 + Math.random() * (vpW - 70);
+            const roamY = isMobile
+              ? vpH - (65 + Math.random() * 80)
+              : Math.max(90, Math.min(vpH - 80, p.y + (Math.random() * 160 - 80)));
+            p.targetX = roamX;
+            p.targetY = roamY;
+            p.state = 'running';
+            setState('running');
+          } else if (timeSinceMove > 25000 && p.idleTimer > 500) {
+            // Take a cozy nap if completely undisturbed for 25s
             p.state = 'sleeping';
             setState('sleeping');
             p.idleTimer = 0;
           }
         }
       } else if (p.state === 'running') {
-        // When Pikachu reaches comfortable follow distance beside cursor
+        // When Pikachu reaches comfortable follow distance beside target
         if (dist < 36) {
           p.state = 'idle';
           setState('idle');
@@ -294,9 +356,14 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled, onT
         }
       }
 
+      // Responsive scale factor for mobile screens
+      const scale = vpW < 600 ? 0.8 : 1;
+      const marginH = 32 * scale;
+      const marginBot = vpW < 768 ? 65 : 40;
+
       // Safe viewport boundary
-      p.x = Math.max(32, Math.min(vpW - 32, p.x));
-      p.y = Math.max(32, Math.min(vpH - 32, p.y));
+      p.x = Math.max(marginH, Math.min(vpW - marginH, p.x));
+      p.y = Math.max(48 * scale, Math.min(vpH - marginBot, p.y));
 
       // SPRITE CANVAS RENDERING (Zero React overhead)
       const canvas = canvasRef.current;
@@ -368,10 +435,10 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled, onT
         }
       }
 
-      // Update DOM transform directly (avoids React re-render thrashing!)
+      // Update DOM transform directly with responsive scale
       if (containerRef.current) {
-        // High precision translate3d
-        containerRef.current.style.transform = `translate3d(${Math.round(p.x - 32)}px, ${Math.round(p.y - 48)}px, 0)`;
+        const renderScale = vpW < 600 ? 0.8 : 1;
+        containerRef.current.style.transform = `translate3d(${Math.round(p.x - 32 * renderScale)}px, ${Math.round(p.y - 48 * renderScale)}px, 0) scale(${renderScale})`;
       }
 
       rafRef.current = requestAnimationFrame(loop);
@@ -387,12 +454,12 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled, onT
 
   return (
     <>
-      {/* Floating Toggle Button (Bottom-Right, non-obtrusive, accessible) */}
+      {/* Floating Toggle Button (Bottom-Right, non-obtrusive, accessible, mobile-optimized) */}
       <div
         style={{
           position: 'fixed',
-          bottom: '20px',
-          right: '20px',
+          bottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
+          right: 'max(16px, env(safe-area-inset-right, 16px))',
           zIndex: 900,
         }}
       >
@@ -402,9 +469,9 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled, onT
             background: enabled ? 'rgba(255, 212, 71, 0.18)' : 'rgba(25, 17, 40, 0.92)',
             border: enabled ? '1.5px solid var(--butter)' : '1.5px solid var(--line)',
             color: enabled ? 'var(--butter)' : 'var(--fg-soft)',
-            padding: '7px 14px',
+            padding: '7px 13px',
             borderRadius: '999px',
-            fontSize: '12.5px',
+            fontSize: '12px',
             fontWeight: 600,
             display: 'flex',
             alignItems: 'center',
@@ -413,10 +480,12 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled, onT
             backdropFilter: 'blur(8px)',
             boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
             transition: 'all 0.15s ease',
+            touchAction: 'manipulation',
           }}
-          className="hover:scale-105"
+          className="hover:scale-105 active:scale-95"
           id="btn-pikachu-toggle"
           title="Toggle Pikachu website companion"
+          aria-label="Toggle Pikachu website companion"
         >
           <Zap size={13} style={{ fill: enabled ? 'currentColor' : 'none' }} />
           <span>Pikachu {enabled ? 'ON' : 'OFF'}</span>
@@ -428,6 +497,11 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled, onT
         <div
           ref={containerRef}
           onClick={handlePikachuClick}
+          onTouchEnd={(e) => {
+            // Instant mobile tap response without blocking scroll
+            e.stopPropagation();
+            handlePikachuClick();
+          }}
           style={{
             position: 'fixed',
             left: 0,
@@ -437,13 +511,17 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled, onT
             zIndex: 9998,
             cursor: 'pointer',
             pointerEvents: 'auto',
+            touchAction: 'manipulation',
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
             willChange: 'transform',
+            transformOrigin: 'bottom center',
             filter: isDischarging
               ? 'drop-shadow(0 0 16px #FFE600) drop-shadow(0 4px 8px rgba(0,0,0,0.6))'
               : 'drop-shadow(0 5px 10px rgba(0, 0, 0, 0.55))',
             transition: 'filter 0.15s ease',
           }}
-          title="Pikachu companion — Click to interact!"
+          title="Pikachu companion — Tap or click to interact!"
           id="pikachu-character-root"
         >
           {/* Natural Shadow on the floor */}

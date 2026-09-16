@@ -605,15 +605,69 @@ button {
   line-height: 1.65;
 }
 
-.social-logo-btn {
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+/* Very simple, monotonous social logo links */
+.monotone-social-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  color: var(--fg-soft);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
 }
 
-.social-logo-btn:hover {
-  border-color: var(--lav) !important;
-  background: rgba(185, 156, 255, 0.08) !important;
+.monotone-social-btn:hover {
+  background: rgba(185, 156, 255, 0.1);
+  border-color: var(--lav);
+  color: var(--fg);
   transform: translateY(-2px);
-  box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.5);
+}
+
+.monotone-social-btn:active {
+  transform: translateY(0);
+}
+
+.monotone-social-btn svg {
+  color: var(--lav);
+  flex-shrink: 0;
+  transition: transform 0.18s ease;
+}
+
+.monotone-social-btn:hover svg {
+  transform: scale(1.1);
+}
+
+.monotone-social-btn .arrow-hint {
+  opacity: 0.35;
+  transition: all 0.18s ease;
+  margin-left: -2px;
+}
+
+.monotone-social-btn:hover .arrow-hint {
+  opacity: 1;
+  transform: translate(2px, -2px) scale(1.05);
+  color: var(--lav);
+}
+
+.monotone-badge {
+  font-family: var(--f-mono, monospace);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(185, 156, 255, 0.12);
+  border: 1px solid rgba(185, 156, 255, 0.25);
+  color: var(--lav);
+  line-height: 1.2;
 }
 
 @media print {

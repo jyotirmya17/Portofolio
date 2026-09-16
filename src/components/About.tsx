@@ -40,22 +40,22 @@ export const About: React.FC = () => {
             </p>
           </div>
 
-          {/* Social Links in the form of Logos directly below the about me content */}
-          <div className="about-socials" id="about-social-links" style={{ marginTop: '30px' }}>
+          {/* Simple, monotonous social links with respective logos */}
+          <div className="about-socials" id="about-social-links" style={{ marginTop: '26px' }}>
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                marginBottom: '14px',
+                marginBottom: '12px',
               }}
             >
               <span
                 style={{
                   fontFamily: 'var(--f-mono, monospace)',
-                  fontSize: '11.5px',
+                  fontSize: '11px',
                   fontWeight: 700,
-                  letterSpacing: '0.06em',
+                  letterSpacing: '0.08em',
                   textTransform: 'uppercase',
                   color: 'var(--lav)',
                   display: 'inline-flex',
@@ -66,329 +66,81 @@ export const About: React.FC = () => {
                 <span
                   style={{
                     display: 'inline-block',
-                    width: '6px',
-                    height: '6px',
+                    width: '5px',
+                    height: '5px',
                     borderRadius: '50%',
                     background: 'var(--lav)',
                   }}
                   aria-hidden="true"
                 />
-                Social &amp; Professional Links
+                Connect &amp; Socials
               </span>
-              <div style={{ height: '1px', flex: 1, background: 'var(--line)', maxWidth: '140px' }} />
+              <div style={{ height: '1px', flex: 1, background: 'var(--line)', maxWidth: '120px' }} />
             </div>
 
             <div
               style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                gap: '12px',
-                maxWidth: '560px',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '10px',
+                alignItems: 'center',
               }}
             >
-              {/* LinkedIn Logo Link */}
+              {/* LinkedIn Monotone Logo Link */}
               <a
                 href="https://www.linkedin.com/in/jyotirmya-sharma-aa3485210/"
                 target="_blank"
                 rel="noopener noreferrer"
                 id="about-link-linkedin"
-                className="group social-logo-btn"
-                aria-label="Jyotirmya Sharma LinkedIn Profile"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '11px 15px',
-                  background: '#1d132c',
-                  border: '1.5px solid var(--line)',
-                  borderRadius: '14px',
-                  color: 'var(--fg)',
-                  textDecoration: 'none',
-                  cursor: 'pointer',
-                }}
+                className="monotone-social-btn"
+                aria-label="LinkedIn Profile"
+                title="LinkedIn: /in/jyotirmya-sharma"
               >
-                <div
-                  style={{
-                    width: '38px',
-                    height: '38px',
-                    borderRadius: '10px',
-                    background: '#0a66c2',
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    boxShadow: '0 4px 12px rgba(10, 102, 194, 0.4)',
-                  }}
-                  className="group-hover:scale-105 transition-transform"
-                >
-                  <Linkedin size={21} strokeWidth={2.3} />
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: '14px',
-                      fontWeight: 700,
-                      lineHeight: 1.2,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    <span>LinkedIn</span>
-                    <ArrowUpRight
-                      size={13}
-                      className="opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all text-[var(--lav)]"
-                    />
-                  </div>
-                  <div
-                    style={{
-                      fontSize: '11.5px',
-                      color: 'var(--fg-soft)',
-                      fontFamily: 'var(--f-mono, monospace)',
-                      marginTop: '2px',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    /in/jyotirmya-sharma
-                  </div>
-                </div>
+                <Linkedin size={18} strokeWidth={2} />
+                <span>LinkedIn</span>
+                <ArrowUpRight size={13} className="arrow-hint" />
               </a>
 
-              {/* GitHub Logo Link */}
+              {/* GitHub Monotone Logo Link */}
               <a
                 href="https://github.com/jyotirmya17"
                 target="_blank"
                 rel="noopener noreferrer"
                 id="about-link-github"
-                className="group social-logo-btn"
-                aria-label="Jyotirmya Sharma GitHub Profile"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '11px 15px',
-                  background: '#1d132c',
-                  border: '1.5px solid var(--line)',
-                  borderRadius: '14px',
-                  color: 'var(--fg)',
-                  textDecoration: 'none',
-                  cursor: 'pointer',
-                }}
+                className="monotone-social-btn"
+                aria-label="GitHub Profile"
+                title="GitHub: @jyotirmya17"
               >
-                <div
-                  style={{
-                    width: '38px',
-                    height: '38px',
-                    borderRadius: '10px',
-                    background: '#24292e',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
-                  }}
-                  className="group-hover:scale-105 transition-transform"
-                >
-                  <Github size={21} strokeWidth={2.3} />
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: '14px',
-                      fontWeight: 700,
-                      lineHeight: 1.2,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    <span>GitHub</span>
-                    <ArrowUpRight
-                      size={13}
-                      className="opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all text-[var(--lav)]"
-                    />
-                  </div>
-                  <div
-                    style={{
-                      fontSize: '11.5px',
-                      color: 'var(--fg-soft)',
-                      fontFamily: 'var(--f-mono, monospace)',
-                      marginTop: '2px',
-                    }}
-                  >
-                    @jyotirmya17
-                  </div>
-                </div>
+                <Github size={18} strokeWidth={2} />
+                <span>GitHub</span>
+                <ArrowUpRight size={13} className="arrow-hint" />
               </a>
 
-              {/* Resume Logo Link (Opens PDF Viewer & Print Modal) */}
+              {/* Resume Monotone Logo Button */}
               <button
                 type="button"
                 onClick={() => setIsResumeOpen(true)}
                 id="about-link-resume"
-                className="group social-logo-btn"
-                aria-label="View and Print Jyotirmya Sharma Resume PDF"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '11px 15px',
-                  background: '#1d132c',
-                  border: '1.5px solid var(--line)',
-                  borderRadius: '14px',
-                  color: 'var(--fg)',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                }}
+                className="monotone-social-btn"
+                aria-label="View Resume PDF"
+                title="Resume (View & Print PDF)"
               >
-                <div
-                  style={{
-                    width: '38px',
-                    height: '38px',
-                    borderRadius: '10px',
-                    background: '#e11d48',
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    boxShadow: '0 4px 12px rgba(225, 29, 72, 0.4)',
-                    position: 'relative',
-                  }}
-                  className="group-hover:scale-105 transition-transform"
-                >
-                  <FileText size={21} strokeWidth={2.3} />
-                  <span
-                    style={{
-                      position: 'absolute',
-                      bottom: '-3px',
-                      right: '-4px',
-                      fontSize: '8px',
-                      fontWeight: 900,
-                      background: '#ffffff',
-                      color: '#e11d48',
-                      padding: '1px 3px',
-                      borderRadius: '3px',
-                      lineHeight: 1,
-                      fontFamily: 'var(--f-mono, monospace)',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
-                    }}
-                  >
-                    PDF
-                  </span>
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: '14px',
-                      fontWeight: 700,
-                      lineHeight: 1.2,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                    }}
-                  >
-                    <span>Resume</span>
-                    <span
-                      style={{
-                        fontSize: '9.5px',
-                        padding: '1px 4px',
-                        borderRadius: '4px',
-                        background: 'rgba(225, 29, 72, 0.2)',
-                        color: '#fb7185',
-                        border: '1px solid rgba(225, 29, 72, 0.35)',
-                        fontFamily: 'var(--f-mono, monospace)',
-                        fontWeight: 700,
-                      }}
-                    >
-                      PDF
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: '11.5px',
-                      color: 'var(--fg-soft)',
-                      fontFamily: 'var(--f-mono, monospace)',
-                      marginTop: '2px',
-                    }}
-                  >
-                    View &amp; Print PDF
-                  </div>
-                </div>
+                <FileText size={18} strokeWidth={2} />
+                <span>Resume</span>
+                <span className="monotone-badge">PDF</span>
               </button>
 
-              {/* Gmail Logo Link */}
+              {/* Gmail Monotone Logo Link */}
               <a
                 href="mailto:jyotirmya.jm@gmail.com"
                 id="about-link-gmail"
-                className="group social-logo-btn"
-                aria-label="Send email to Jyotirmya Sharma via Gmail"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '11px 15px',
-                  background: '#1d132c',
-                  border: '1.5px solid var(--line)',
-                  borderRadius: '14px',
-                  color: 'var(--fg)',
-                  textDecoration: 'none',
-                  cursor: 'pointer',
-                }}
+                className="monotone-social-btn"
+                aria-label="Send Email via Gmail"
+                title="Email: jyotirmya.jm@gmail.com"
               >
-                <div
-                  style={{
-                    width: '38px',
-                    height: '38px',
-                    borderRadius: '10px',
-                    background: '#ea4335',
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    boxShadow: '0 4px 12px rgba(234, 67, 53, 0.4)',
-                  }}
-                  className="group-hover:scale-105 transition-transform"
-                >
-                  <Mail size={21} strokeWidth={2.3} />
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: '14px',
-                      fontWeight: 700,
-                      lineHeight: 1.2,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    <span>Gmail</span>
-                    <ArrowUpRight
-                      size={13}
-                      className="opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all text-[var(--lav)]"
-                    />
-                  </div>
-                  <div
-                    style={{
-                      fontSize: '11.5px',
-                      color: 'var(--fg-soft)',
-                      fontFamily: 'var(--f-mono, monospace)',
-                      marginTop: '2px',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    jyotirmya.jm@gmail.com
-                  </div>
-                </div>
+                <Mail size={18} strokeWidth={2} />
+                <span>Gmail</span>
+                <ArrowUpRight size={13} className="arrow-hint" />
               </a>
             </div>
           </div>
