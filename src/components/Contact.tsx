@@ -14,7 +14,7 @@ export const Contact: React.FC<ContactProps> = ({ onCopyEmail, onShowToast }) =>
 
   const myEmail = 'jyotirmya.jm@gmail.com';
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanEmail = email.trim();
     const cleanNote = note.trim();
@@ -32,24 +32,44 @@ export const Contact: React.FC<ContactProps> = ({ onCopyEmail, onShowToast }) =>
     }
 
     setHintColor('#5B4A70');
-    setHint('Preparing your note…');
+    setHint('Sending your note…');
     setIsSending(true);
 
-    // Form mailto link
-    const subject = encodeURIComponent(`Portfolio Message from ${cleanEmail}`);
-    const body = encodeURIComponent(
-      `From: ${cleanEmail}\n\nMessage:\n${cleanNote}\n\n---\nSent via Jyotirmya's portfolio`
-    );
-    const mailtoUrl = `mailto:${myEmail}?subject=${subject}&body=${body}`;
-
-    setTimeout(() => {
+    try {
+      const response = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          access_key: import.meta.env.VITE_WEB3FORMS_ACCESS_KEY || 'YOUR_ACCESS_KEY_HERE',
+          email: cleanEmail,
+          message: cleanNote,
+          subject: `Portfolio Message from ${cleanEmail}`,
+          from_name: 'Portfolio Contact Form'
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        onShowToast('Sent! Your note landed in the inbox.');
+        setHint('');
+        setEmail('');
+        setNote('');
+      } else {
+        setHintColor('#B3245F');
+        setHint('Something went wrong. Please try again.');
+        console.error('Web3Forms Error:', result);
+      }
+    } catch (error) {
+      setHintColor('#B3245F');
+      setHint('Network error. Please check your connection.');
+      console.error('Submit Error:', error);
+    } finally {
       setIsSending(false);
-      window.location.href = mailtoUrl;
-      onShowToast('Sent! Your note landed in the inbox.');
-      setHint('');
-      setEmail('');
-      setNote('');
-    }, 400);
+    }
   };
 
   return (
