@@ -116,16 +116,16 @@ export const JOURNEY_ITEMS: JourneyItem[] = [
   {
     year: '2023',
     role: 'BIT Mesra',
-    org: 'Computer Science',
+    org: 'B.Tech CSE',
     when: '2023 – 2027',
     colorVar: 'var(--butter)',
     isOpen: false,
     changes: [
-      'Started studying Computer Science.',
+      'Started studying Computer Science and Engineering (B.Tech CSE).',
       'Eventually realized that I enjoyed building things more than just learning about them.',
     ],
     tools: ['Algorithms', 'OS', 'Networks', 'Database Systems', 'C/C++'],
-    secondary: 'B.E. Computer Science, Birla Institute of Technology, Mesra',
+    secondary: 'B.Tech in Computer Science and Engineering (CSE), Birla Institute of Technology, Mesra',
   },
 ];
 

@@ -38,6 +38,7 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled = tr
     idleTimer: 0,
     idleDuration: 180,
     state: 'idle' as PikachuState,
+    isRoaming: false,
     animFrame: 0,
     frameTick: 0,
     lastThunderbolt: Date.now() - 15000,
@@ -56,6 +57,7 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled = tr
       p.mouse.y = e.clientY;
       p.mouse.lastMove = Date.now();
       p.mouse.hasMoved = true;
+      p.isRoaming = false;
       p.targetX = e.clientX;
       p.targetY = e.clientY;
 
@@ -75,6 +77,7 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled = tr
         p.mouse.y = t.clientY;
         p.mouse.lastMove = Date.now();
         p.mouse.hasMoved = true;
+        p.isRoaming = false;
 
         // On mobile, keep a friendly companion offset so Pikachu never blocks what the user tapped on
         const vpW = window.innerWidth;
@@ -99,6 +102,7 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled = tr
         p.mouse.y = t.clientY;
         p.mouse.lastMove = Date.now();
         p.mouse.hasMoved = true;
+        p.isRoaming = false;
 
         const vpW = window.innerWidth;
         const vpH = window.innerHeight;
@@ -230,10 +234,17 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled = tr
       const vpW = window.innerWidth;
       const vpH = window.innerHeight;
 
-      // 2D distance to mouse cursor target
+      // 2D distance to target
       const dx = p.targetX - p.x;
       const dy = p.targetY - p.y;
       const dist = Math.hypot(dx, dy);
+
+      const isMobile = vpW < 768;
+      // Stop distance: Pikachu stops before reaching the cursor so he never blocks clicking
+      // 72px on desktop ensures at least 40px clear space between cursor and Pikachu's 64x64 bounding box
+      const stopDist = p.isRoaming ? 20 : (isMobile ? 54 : 72);
+      // Follow threshold: Pikachu only starts chasing if cursor moves beyond this distance
+      const followDist = p.isRoaming ? 38 : (isMobile ? 82 : 108);
 
       // STATE MACHINE UPDATE
       if (p.state === 'thunderbolt') {
@@ -250,16 +261,16 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled = tr
         p.vx = 0;
         p.vy = 0;
         p.idleTimer += 1;
-        // Wakes up if cursor moves away
-        if (dist > 65) {
+        // Wakes up if cursor moves significantly away
+        if (dist > followDist + 35) {
           p.state = 'running';
           setState('running');
           p.idleTimer = 0;
         }
       } else if (p.state === 'idle') {
-        // Friction deceleration
-        p.vx *= 0.65;
-        p.vy *= 0.65;
+        // Friction deceleration to a complete, crisp stop
+        p.vx *= 0.55;
+        p.vy *= 0.55;
         p.x += p.vx;
         p.y += p.vy;
         p.idleTimer += 1;
@@ -276,23 +287,30 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled = tr
         }
 
         // If mouse moves away beyond follow perimeter, pursue diagonally!
-        if (dist > 45) {
+        if (dist > followDist) {
+          p.isRoaming = false;
+          p.targetX = p.mouse.x;
+          p.targetY = p.mouse.y;
           p.state = 'running';
           setState('running');
           p.idleTimer = 0;
         } else {
           const now = Date.now();
           const timeSinceMove = now - p.mouse.lastMove;
-          const isMobile = vpW < 768;
 
           // Autonomous gentle roaming: On mobile (or when cursor has stopped moving for 3.5s),
           // Pikachu periodically takes playful strolls around the safe bottom area
           if ((isMobile || timeSinceMove > 3500) && p.idleTimer > (isMobile ? 160 : 260)) {
             p.idleTimer = 0;
-            const roamX = 35 + Math.random() * (vpW - 70);
-            const roamY = isMobile
+            p.isRoaming = true;
+            let roamX = 35 + Math.random() * (vpW - 70);
+            let roamY = isMobile
               ? vpH - (65 + Math.random() * 80)
               : Math.max(90, Math.min(vpH - 80, p.y + (Math.random() * 160 - 80)));
+            // Avoid picking a roam destination on top of the user's cursor
+            if (Math.hypot(roamX - p.mouse.x, roamY - p.mouse.y) < 85) {
+              roamX = roamX < vpW / 2 ? roamX + 90 : roamX - 90;
+            }
             p.targetX = roamX;
             p.targetY = roamY;
             p.state = 'running';
@@ -305,30 +323,40 @@ export const PikachuCompanion: React.FC<PikachuCompanionProps> = ({ enabled = tr
           }
         }
       } else if (p.state === 'running') {
-        // When Pikachu reaches comfortable follow distance beside target
-        if (dist < 36) {
+        // When Pikachu reaches comfortable follow distance beside target (stops safely before the cursor)
+        if (dist <= stopDist) {
           p.state = 'idle';
+          p.isRoaming = false;
           setState('idle');
           p.idleTimer = 0;
+          const absDx = Math.abs(dx);
+          const absDy = Math.abs(dy);
+          if (absDx >= absDy) {
+            p.dir = dx >= 0 ? 2 : 1;
+          } else {
+            p.dir = dy >= 0 ? 0 : 3;
+          }
         } else {
           // 360-degree unit vector for fluid diagonal travel in all directions
           const dirX = dx / dist;
           const dirY = dy / dist;
 
-          // Adaptive speed: sprint when far, run when medium, walk when close
+          // Adaptive speed: sprint when far, run when medium, decelerate smoothly when approaching stop distance
           let maxSpeed = prefersReducedMotion ? 2.0 : 4.8;
           let accel = 0.24;
 
           if (!prefersReducedMotion) {
-            if (dist > 360) {
-              maxSpeed = 8.5; // sprint to catch up
+            const remDist = Math.max(0, dist - stopDist);
+            if (remDist > 280) {
+              maxSpeed = 8.2; // sprint to catch up
               accel = 0.30;
-            } else if (dist > 160) {
-              maxSpeed = 6.2; // brisk run
+            } else if (remDist > 100) {
+              maxSpeed = 5.8; // brisk run
               accel = 0.26;
-            } else if (dist < 70) {
-              maxSpeed = Math.max(2.0, (dist / 70) * 4.2); // smooth deceleration
-              accel = 0.25;
+            } else {
+              // Smooth deceleration into the stop distance
+              maxSpeed = Math.max(1.2, (remDist / 100) * 4.4);
+              accel = 0.22;
             }
           }
 

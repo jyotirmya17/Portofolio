@@ -89,7 +89,7 @@ export const Hero: React.FC<HeroProps> = ({ onCopyEmail }) => {
                 color: 'var(--fg-soft)',
               }}
             >
-              I'm a Computer Science student at BIT Mesra, currently building distributed systems, backend
+              I'm a B.Tech CSE student at BIT Mesra, currently building distributed systems, backend
               infrastructure, and AI-powered products.
             </span>
           </p>

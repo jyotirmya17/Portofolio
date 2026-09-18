@@ -67,7 +67,7 @@ export const SystemsTerminal: React.FC<SystemsTerminalProps> = ({
           <div>
             Jyotirmya Sharma — Software Engineering Intern at <strong>ULTRATEND</strong>.
             <br />
-            Computer Science student at Birla Institute of Technology, Mesra (2023–2027).
+            B.Tech in CSE student at Birla Institute of Technology, Mesra (2023–2027).
             <br />
             Backend engineer specializing in distributed systems, concurrency, and AI infrastructure.
           </div>

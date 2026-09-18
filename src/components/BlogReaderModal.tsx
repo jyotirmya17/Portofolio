@@ -402,7 +402,7 @@ export const BlogReaderModal: React.FC<BlogReaderModalProps> = ({
                 <div>
                   <div style={{ fontWeight: 600, fontSize: '14.5px' }}>Jyotirmya Sharma</div>
                   <div style={{ fontSize: '12.5px', color: 'var(--fg-soft)' }}>
-                    Final-year CS @ BIT Mesra · Software Engineering Intern @ ULTRATEND
+                    B.Tech in CSE @ BIT Mesra · Software Engineering Intern @ ULTRATEND
                   </div>
                 </div>
               </div>

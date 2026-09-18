@@ -249,7 +249,7 @@ export const ResumeModal: React.FC<ResumeModalProps> = ({ isOpen, onClose }) => 
               <span style={{ fontSize: '12.5px', color: '#4b5563' }}>Sept 2023 – Aug 2027</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', color: '#4b5563', fontSize: '13px' }}>
-              <span>Bachelor of Technology in Computer Science, <strong>CGPA: 8.3</strong></span>
+              <span>Bachelor of Technology in Computer Science &amp; Engineering (B.Tech CSE), <strong>CGPA: 8.3</strong></span>
               <span>Ranchi, Jharkhand</span>
             </div>
           </section>

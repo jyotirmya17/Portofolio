@@ -160,7 +160,7 @@ export const About: React.FC = () => {
             </ul>
           </div>
           <div className="chips">
-            <span className="chip">B.E. CS @ BIT Mesra</span>
+            <span className="chip">B.Tech in CSE @ BIT Mesra</span>
             <span className="chip">ULTRATEND</span>
             <span className="chip">Distributed Systems · Backend · AI Infra</span>
           </div>
