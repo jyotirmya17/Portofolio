@@ -45,11 +45,13 @@ export const MarkdownProse: React.FC<MarkdownProseProps> = ({ content, className
 };
 
 interface Block {
-  type: 'paragraph' | 'heading' | 'code' | 'blockquote' | 'ordered-list' | 'unordered-list';
+  type: 'paragraph' | 'heading' | 'code' | 'blockquote' | 'ordered-list' | 'unordered-list' | 'table';
   level?: number;
   lang?: string;
   content: string;
   items?: string[];
+  headers?: string[];
+  rows?: string[][];
 }
 
 function splitIntoBlocks(raw: string): Block[] {
@@ -93,6 +95,26 @@ function splitIntoBlocks(raw: string): Block[] {
         content: headingMatch[2].trim(),
       });
       i++;
+      continue;
+    }
+
+    // Markdown Table: | col 1 | col 2 |
+    if (line.trim().startsWith('|') && line.trim().endsWith('|') && i + 1 < lines.length && lines[i + 1].trim().startsWith('|') && lines[i + 1].includes('---')) {
+      const headerLine = lines[i].trim();
+      const headers = headerLine.slice(1, -1).split('|').map((s) => s.trim());
+      i += 2; // skip header and delimiter separator line
+      const rows: string[][] = [];
+      while (i < lines.length && lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) {
+        const rowCells = lines[i].trim().slice(1, -1).split('|').map((s) => s.trim());
+        rows.push(rowCells);
+        i++;
+      }
+      blocks.push({
+        type: 'table',
+        content: '',
+        headers,
+        rows,
+      });
       continue;
     }
 
@@ -415,6 +437,82 @@ const BlockRenderer: React.FC<{ block: Block }> = ({ block }) => {
             </li>
           ))}
         </ul>
+      );
+    }
+
+    case 'table': {
+      return (
+        <div
+          style={{
+            margin: '22px 0',
+            overflowX: 'auto',
+            borderRadius: '10px',
+            border: '1.5px solid var(--line)',
+            background: 'rgba(10, 7, 18, 0.65)',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
+          }}
+        >
+          <table
+            style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              fontSize: '14.5px',
+              textAlign: 'left',
+            }}
+          >
+            <thead>
+              <tr
+                style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  borderBottom: '1.5px solid var(--line)',
+                }}
+              >
+                {block.headers?.map((h, i) => (
+                  <th
+                    key={i}
+                    style={{
+                      padding: '12px 16px',
+                      color: 'var(--butter)',
+                      fontWeight: 600,
+                      fontFamily: 'var(--f-sans)',
+                      letterSpacing: '0.02em',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {renderInline(h)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {block.rows?.map((row, rIdx) => (
+                <tr
+                  key={rIdx}
+                  style={{
+                    borderBottom:
+                      rIdx < (block.rows?.length || 0) - 1
+                        ? '1px solid rgba(255, 255, 255, 0.05)'
+                        : undefined,
+                    background: rIdx % 2 === 1 ? 'rgba(255, 255, 255, 0.015)' : 'transparent',
+                  }}
+                >
+                  {row.map((cell, cIdx) => (
+                    <td
+                      key={cIdx}
+                      style={{
+                        padding: '11px 16px',
+                        color: 'var(--fg)',
+                        lineHeight: '1.5',
+                      }}
+                    >
+                      {renderInline(cell)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       );
     }
 

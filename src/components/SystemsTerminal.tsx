@@ -55,6 +55,7 @@ export const SystemsTerminal: React.FC<SystemsTerminalProps> = ({
             <div>• <strong style={{ color: 'var(--blue)' }}>status</strong> : Live cluster health &amp; active focus</div>
             <div>• <strong style={{ color: 'var(--blue)' }}>stack</strong> : Backend, distributed systems, &amp; AI stack</div>
             <div>• <strong style={{ color: 'var(--blue)' }}>prs</strong> : Recent open source merged PRs</div>
+            <div>• <strong style={{ color: 'var(--blue)' }}>blogs</strong> : Technical research articles and writeups</div>
             <div>• <strong style={{ color: 'var(--blue)' }}>pikachu</strong> : Toggle Pikachu cursor pet (currently: {pikachuActive ? 'ACTIVE' : 'OFF'})</div>
             <div>• <strong style={{ color: 'var(--blue)' }}>contact</strong> : Email &amp; social profiles</div>
             <div>• <strong style={{ color: 'var(--blue)' }}>clear</strong> : Clear terminal logs</div>
@@ -112,6 +113,23 @@ export const SystemsTerminal: React.FC<SystemsTerminalProps> = ({
             • PR #1256: fix(ts): allow Node.js package exports wildcard to cross directory boundaries
             <br />
             • PR #5257: screenpipe: fix(ui) pipe inventory count in recents
+          </div>
+        );
+        break;
+
+      case 'blogs':
+      case 'writings':
+        res = (
+          <div style={{ lineHeight: '1.6' }}>
+            <span style={{ color: 'var(--mint)', fontWeight: 600 }}>Technical Writings &amp; Systems Research:</span>
+            <br />
+            • <strong style={{ color: 'var(--butter)' }}>Pulling Data from Websites That Weren't Built to Be Read</strong> (October 2026) — Data pipelines, raw response persistence, and record matching in Python &amp; PostgreSQL.
+            <br />
+            • <strong>When an AI Agent Has Money</strong> (August 2026) — Designing deterministic trust boundaries.
+            <br />
+            • <strong>Your Agent Is Only as Correct as the State It Reads</strong> (June 2026) — C++20 Quorum consensus.
+            <br />
+            • <strong>Why Agent Workflows Need State Machines</strong> (March 2026) — Durable execution &amp; idempotency.
           </div>
         );
         break;

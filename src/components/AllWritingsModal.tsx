@@ -37,6 +37,23 @@ const POST_COLOR_THEMES: Record<
     btnText: string;
   }
 > = {
+  'b-data-ingestion-pipeline': {
+    accent: '#38d9a9',
+    accentRgb: '56, 217, 169',
+    badgeBg: 'rgba(56, 217, 169, 0.16)',
+    badgeBorder: 'rgba(56, 217, 169, 0.4)',
+    badgeText: '#96f2d7',
+    tagBg: 'rgba(56, 217, 169, 0.08)',
+    tagBorder: 'rgba(56, 217, 169, 0.2)',
+    tagText: '#96f2d7',
+    cardBorderHover: 'rgba(56, 217, 169, 0.65)',
+    cardShadowHover: '0 16px 40px -10px rgba(56, 217, 169, 0.32)',
+    gradientGlow:
+      'radial-gradient(circle at 10% 10%, rgba(56, 217, 169, 0.12) 0%, transparent 60%)',
+    btnBg: 'rgba(56, 217, 169, 0.14)',
+    btnHoverBg: '#38d9a9',
+    btnText: '#38d9a9',
+  },
   'b-agent-governance': {
     accent: '#c49cf5',
     accentRgb: '196, 156, 245',

@@ -144,18 +144,31 @@ mermaid.initialize({
       stroke: #cbbade !important;
       stroke-width: 1.5px !important;
     }
-    .note {
+    /* Sequence Diagram Notes */
+    .mermaid-svg-root .note,
+    svg .note,
+    rect.note,
+    g.note {
+      transform: none !important;
+      transform-box: fill-box !important;
       stroke: #ffd447 !important;
       fill: #2e230a !important;
-      stroke-width: 1px !important;
+      stroke-width: 1.5px !important;
       rx: 6px !important;
       ry: 6px !important;
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.45));
     }
-    .noteText {
+    .mermaid-svg-root .noteText,
+    svg .noteText,
+    text.noteText,
+    .mermaid-svg-root .noteText > tspan,
+    svg .noteText > tspan,
+    text.noteText > tspan {
+      transform: none !important;
       fill: #fff0b3 !important;
       font-family: Inter, system-ui, sans-serif !important;
       font-size: 12px !important;
-      font-weight: 500 !important;
+      font-weight: 600 !important;
     }
     /* State Diagram Elements */
     .statediagram-state rect {

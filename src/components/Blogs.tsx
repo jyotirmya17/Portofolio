@@ -53,8 +53,8 @@ export const Blogs: React.FC<BlogsProps> = ({ onSelectPost }) => {
             lineHeight: '1.6',
           }}
         >
-          Original engineering writeups on distributed consensus, deterministic financial rails for AI,
-          durable state machines, and benchmark calibration. Grounded in code, failure cases, and architecture.
+          Original engineering writeups on data ingestion pipelines, deterministic financial rails for AI,
+          distributed consensus, and durable state machines. Grounded in code, failure cases, and architecture.
         </p>
 
         {/* 3 Featured Blog Article Cards in the style of "Let's build something" */}

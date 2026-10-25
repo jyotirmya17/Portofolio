@@ -566,7 +566,7 @@ button {
   letter-spacing: -0.025em;
 }
 
-.note {
+p.note {
   display: flex;
   align-items: flex-start;
   gap: 6px;
@@ -576,7 +576,7 @@ button {
   transform: rotate(-3deg);
 }
 
-.note svg {
+p.note svg {
   width: 46px;
   height: auto;
   flex: none;
