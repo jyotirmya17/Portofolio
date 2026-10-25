@@ -6,81 +6,70 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: 'pulling-data-from-websites-with-no-api',
     title: "Pulling Data from Websites That Weren't Built to Be Read: What I Learned Building an Ingestion Pipeline",
     subtitle: "Fetching was the easy part. Saving raw responses first, defining per-source contracts, and matching against a reference endpoint is what made inconsistent data usable.",
+    byline: "By Jyotirmya Sharma · B.Tech CSE, BIT Mesra ('23)",
     publishDate: 'October 12, 2026',
     year: 2026,
-    readingTime: '11 min read',
+    readingTime: '7 min read',
+    hideSummaryCallout: true,
+    codeSectionTitle: 'Core logic (simplified illustration, not company code)',
     category: 'Data Ingestion Pipelines',
     tags: ['Data Pipelines', 'Python', 'PostgreSQL', 'Data Ingestion', 'Backend Architecture'],
     summary: 'During my internship, I worked on a data ingestion pipeline where many sources had no API and the websites were built inconsistently. Fetching data was the straightforward part; making inconsistent data line up was the real work. Here is how I handled that using Python and PostgreSQL: working out how each page gets its data before writing any parsing code, saving raw responses before parsing, defining what "good enough" meant for each source, and matching scraped records against a structured reference endpoint.',
-    intro: `During my internship I worked on a data ingestion pipeline. That is the part of a system that goes out, collects data from other places, cleans it up and stores it somewhere people and systems can actually use it.
+    intro: `During my internship I worked on a data ingestion pipeline: the part of a system that goes out, collects data from other places, cleans it up, and stores it somewhere people and systems can actually use it.
 
-Many of the sources we needed had no API at all. An API is the official, structured way for one computer program to ask another for data — like ordering from a menu instead of walking into the kitchen. When a source does not offer one, you are left with a website that was built for people to read, not for programs.
+Many of the sources we needed had no API at all. An API is the official, structured way for one computer program to ask another for data — like ordering from a menu instead of walking into the kitchen. When a source doesn't offer one, you are left with a website that was built for people to read, not for programs. On top of that, the websites were all built differently.
 
-On top of that, the websites were all built differently. This post is about how I handled that using Python and PostgreSQL, what worked, what failed, and what I would tell anyone starting a similar job.`,
-    problem: `The core problem when pulling data from websites that have no API is structural inconsistency.
+During the internship, I built the pipeline worker, raw response persistence, and data matching logic for these sources, while our wider team maintained the reference endpoint and downstream consuming systems.
+
+Fetching data was the straightforward part; making inconsistent data line up was where the real work was. This post describes how I approached that using Python and PostgreSQL, and what I would tell anyone starting a similar job.`,
+    problem: `The problem with pulling data from websites that have no API is structural inconsistency.
 
 Imagine three websites that all show the same kind of record:
-- For example, one puts the date at the top of the page, and another puts it at the bottom.
+- One puts the date at the top of the page, and another puts it at the bottom.
 - One writes \`"12/03/2026"\`, and another writes \`"12 March 2026"\`.
 - One labels a field \`"Name"\`, and another calls the same thing \`"Title"\`.
 
-If you write one piece of code to read all of them, it works on the first site, half works on the second, and breaks on the third. Every time any site changes its layout, something else breaks.
+If you write one script to read all of them, it works on the first site, half works on the second, and breaks on the third. Every time any site changes its layout, something else breaks.
 
-So I stopped thinking of it as *"write a scraper"* and started thinking of it as *"build a pipeline that expects sources to disagree."*`,
-    whyObviousFails: `The most common intuitive solution is to write a single script that fetches a page, immediately parses the HTML with hardcoded selectors, and saves the parsed values directly into the database.
+So I stopped thinking of it as "write a scraper" and started thinking of it as "build a pipeline that expects sources to disagree."`,
+    whyObviousFails: `The most tempting approach is to write a script that fetches a page, immediately parses the HTML with hardcoded selectors, and saves the parsed values directly into the database.
 
-Here is why that obvious approach collapses:
+Here is why that collapses:
+- **Parsing on the fly destroys raw truth**: If your parsing logic has a bug and you didn't keep the raw response, the only way to fix the data is to fetch everything again. That is slow, can hit rate limits, and the source may have changed in the meantime.
+- **Assuming uniform fields causes bugs**: Not every website provides every field. Trying to guess or invent values to fill missing fields pollutes your database. A dataset that honestly records that a source lacks a date is far more useful than one that quietly fills it with a guess.
+- **Fragile layout dependencies**: Writing parsing code against visual HTML without first checking browser network requests often wastes time writing fragile selectors for content that was actually being loaded from a background data request.
+- **Unmatched records remain unusable**: Getting text out of HTML is only step one. If one site lists \`"Acme Pvt. Ltd."\` and another lists \`"ACME PVT LTD"\`, keeping them as disconnected rows does not give your team usable data. The scraped data only becomes usable once it is matched against a reliable reference.`,
+    architectureMentalModel: `To build an ingestion pipeline that handles inconsistent websites without breaking, I structured the workflow into four distinct steps:
 
-- **Parsing on the fly destroys raw truth**: If your parsing logic has a bug or encounters an unexpected layout format, and you did not keep the raw response, the only way to fix the data is to fetch everything again. That can be slow, it may hit limits, and the source may have changed in the meantime.
-- **The illusion of uniform fields**: Assuming that every website will provide every field leads either to unhandled exceptions when a field is missing, or worse, code that tries to guess or invent values to satisfy a rigid schema. A dataset that says *"this source never provides X"* is far more useful than one that quietly fills X with a guess.
-- **Fragile layout dependencies**: Writing parsing code against visual HTML without first checking browser network requests often means spending hours writing fragile parsing logic for content that was actually being loaded from an internal background data request.
-- **Unmatched records remain unusable**: Getting text out of HTML is only step one. If one site lists \`"Acme Pvt. Ltd."\` and another lists \`"ACME PVT LTD"\`, having them in your database as two disconnected rows does not give your team usable data. The scraped data only becomes truly usable once it is matched against a reliable reference.`,
-    architectureMentalModel: `To build a reliable ingestion pipeline, I structured the workflow into four distinct steps:
-
-\`\`\`
-[ Step 1: Inspect ]   ──→ Look at background network requests before writing parsing code
-         ↓
-[ Step 2: Persist ]   ──→ Save the unedited raw response in PostgreSQL before parsing
-         ↓
-[ Step 3: Contract ]  ──→ Define what "good enough" means per source & normalise fields
-         ↓
-[ Step 4: Match ]     ──→ Match scraped records against a structured reference endpoint
-\`\`\`
-
-### The Four Steps in Plain Words
-
-- **Step 1: Look at how the page gets its data, before writing any parsing code**
-  The page you see in your browser is often assembled from data fetched in the background. Your browser's developer tools show those background requests. Sometimes the data arrives in a structured form that is far easier to read than the page itself. Sometimes it does not, and you have to read the page. Either way, checking first is worth the few minutes. It tells you whether you are about to write simple, stable code or fragile code, before you have invested in it. This was the first thing I did for every source.
-
-- **Step 2: Save the raw response first**
-  When a website answers a request, I kept the exact, unedited answer before doing anything to it, and parsed it afterwards. With the raw copy saved, a bug means fixing the code and running it again on data you already have. It also lets you go back later and check what the source actually said.
-
-- **Step 3: Decide what "good enough" means for each source**
-  Not every website has every field, and pretending otherwise causes trouble later. For each source I decided up front:
-  1. Which fields are essential, and which are nice to have.
-  2. What to do when a field is missing (leave it empty rather than guess).
-  3. And what exactly is missing from that source, written down so the people using the data know.
-  Being honest about gaps is part of the job.
-
-- **Step 4: Match against another endpoint**
-  An endpoint is a specific address a program can ask for a certain kind of data. We had another endpoint that gave us records in a reliable structure. The scraped data only became truly usable once I matched it against that endpoint, meaning I worked out which row from a website and which record from the endpoint described the same real-world thing.`,
+1. **Look at how the page gets its data before writing any parsing code**
+   Check browser network requests first to see whether the page loads clean background data or if you genuinely need to parse HTML.
+2. **Save the raw response first**
+   Store the exact, unedited response in PostgreSQL before doing any parsing, so bugs can be fixed without re-fetching.
+3. **Decide what "good enough" means for each source and normalise fields**
+   Define required vs optional fields per source, leave missing values empty instead of guessing, and convert text and dates into canonical formats.
+4. **Match against another endpoint**
+   Match normalised records against a structured reference endpoint. Accept a match only when there is exactly one compatible candidate; flag zero or several candidates for review.`,
     technicalImplementation: `### What Python and PostgreSQL Each Did
 
-I used two main tools for the entire pipeline:
+I used two main tools for the pipeline:
 - **Python** handled the fetching, parsing, and cleaning. It is flexible, which matters when every source needs slightly different handling.
-- **PostgreSQL** is a database. It stores data reliably, can enforce rules such as "no duplicate records", and lets you search and combine data easily, which is exactly what you need when you are lining up records from different places.
+- **PostgreSQL** stored data reliably, enforced uniqueness constraints, and allowed searching and combining data when lining up records from different places.
 
 ---
 
 ### Step 1: Checking How the Page Gets Its Data First
-Before writing a single line of parsing code for any source website, I opened the browser developer tools and watched the Network tab during page load.
 
-Often, modern websites render their visual interface on the client while requesting structured background payloads from internal endpoints. If you catch that background call, you can fetch clean, structured data directly rather than parsing complex HTML markup. If the data only exists in the rendered page markup, you know from the start that you must write an HTML parser, but you make that choice intentionally.
+The page you see in your browser is often assembled from data fetched in the background. Before writing any parsing code, I opened the browser developer tools and inspected the background network requests.
+
+Sometimes the data arrives in a structured format (like JSON) that is far easier and more stable to read than the page HTML itself. Sometimes it does not, and you have to parse the page markup. Checking first takes a few minutes and tells you whether you are about to write simple, stable code or fragile code before you have invested in it.
 
 ---
 
 ### Step 2: Saving the Raw Response in PostgreSQL
-To ensure no data was ever lost due to parsing bugs or layout shifts, the ingestion worker immediately stored the unaltered payload into a dedicated PostgreSQL table before any parsing occurred:
+
+When a source website answers a request, the worker keeps the exact, unedited answer in PostgreSQL before parsing it.
+
+If you clean and parse data as it arrives and your code has a bug, the only way to fix the data is to fetch everything again across the network. That can be slow, you may hit request limits, and the source may have changed in the meantime. With the raw copy saved in PostgreSQL, fixing a bug means updating the parser and re-running it locally on data you already have:
 
 \`\`\`sql
 -- Raw response ledger in PostgreSQL
@@ -95,19 +84,35 @@ CREATE TABLE raw_ingestion_responses (
     status VARCHAR(50) DEFAULT 'PENDING'
 );
 CREATE INDEX idx_raw_source_status ON raw_ingestion_responses (source_name, status);
-\`\`\`
 
-If a parser failed or a field extractor had an issue, we never needed to re-fetch pages across the network. We simply corrected the Python parser and re-ran it locally against the stored \`raw_payload\`.
+-- Simplified schemas for matched records and review queue
+CREATE TABLE matched_records (
+    id SERIAL PRIMARY KEY,
+    source_record_id INT REFERENCES raw_ingestion_responses(id),
+    reference_id VARCHAR(100) NOT NULL,
+    matched_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    status VARCHAR(50) DEFAULT 'MATCHED'
+);
+
+CREATE TABLE review_queue (
+    id SERIAL PRIMARY KEY,
+    source_record_id INT REFERENCES raw_ingestion_responses(id),
+    candidate_ids TEXT[],
+    flagged_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    status VARCHAR(50) DEFAULT 'NEEDS_REVIEW'
+);
+\`\`\`
 
 ---
 
 ### Step 3: Defining "Good Enough" and Normalising Fields
-For each source website, I defined an explicit contract:
-- **Essential fields**: Fields that a record must have to be considered valid (for example: name and date).
-- **Optional fields**: Fields that are helpful if present, but left empty (\`NULL\`) if the source does not provide them.
-- **Never guess**: If a source lacks a field, we leave it empty. We never interpolate or invent data.
 
-Once extracted, fields must be **normalised** so the same kind of information is represented in one standard format.
+Not every website provides every field, and pretending otherwise causes trouble later. For each source I decided up front:
+1. Which fields are essential, and which are optional.
+2. What to do when a field is missing (leave it empty rather than guess).
+3. What is missing from that source, noted so downstream users know the gaps.
+
+Once extracted, fields must be **normalised** so the same kind of information is represented in one standard format. Dates are converted into standard ISO format (\`YYYY-MM-DD\`) using per-source format lists, and entity names are lowercased with punctuation and entity suffixes stripped.
 
 #### Illustration of Data Normalisation
 
@@ -115,18 +120,19 @@ Once extracted, fields must be **normalised** so the same kind of information is
 | :--- | :--- | :--- | :--- |
 | **Site A** | \`"12/03/2026"\` | \`"2026-03-12"\` | Standard ISO date format |
 | **Site B** | \`"12 March 2026"\` | \`"2026-03-12"\` | Standard ISO date format |
-| **Site A** | \`"Acme Pvt. Ltd."\` | \`"acme"\` | Lowercase, strip punctuation & entity suffix |
+| **Site A** | \`"Acme Pvt. Ltd."\` | \`"acme"\` | Lowercase, strip punctuation & suffix |
 | **Site B** | \`"  ACME PVT LTD  "\` | \`"acme"\` | Trim whitespace, lowercase, strip suffix |
 
 ---
 
-### Step 4: Matching Against the Reference Endpoint
-Having clean, individual records in a database is not enough if they do not connect to what your organisation already knows. We had another endpoint that provided records in a reliable, canonical structure.
+### Step 4: Matching Against Another Endpoint
 
-Matching is the process of deciding that a record from a scraped source and a record from the reference endpoint describe the same real-world entity:
-1. **Normalise first**: Compute canonical keys by lowercasing text, removing punctuation, and standardising formats.
-2. **Evaluate match confidence**: Compare the canonical key and secondary attributes (like date or identifier) against the reference endpoint records.
-3. **Don't force a match**: If a record has high confidence, link the IDs together in PostgreSQL. If the match is ambiguous or uncertain, flag the record for review rather than guessing.`,
+An endpoint is a specific address a program can ask for a certain kind of data. We had another endpoint that gave us records in a reliable structure. The scraped data only became truly usable once I matched it against that endpoint.
+
+The matching rule was strict and honest:
+1. Compare the canonical name and check date compatibility using \`date_ok(record_date, candidate_date)\`.
+2. **Exactly one compatible candidate**: If exactly one candidate matches, link the records (\`MATCHED\`).
+3. **Zero or several candidates**: If no candidate matches, or if multiple candidates qualify, never guess or pick an arbitrary one. Flag the record for human review (\`NEEDS_REVIEW\`).`,
     mermaidDiagrams: [
       {
         title: 'Four-Stage Ingestion Pipeline Architecture',
@@ -135,11 +141,11 @@ Matching is the process of deciding that a record from a scraped source and a re
     A["Source Website (No API)"] -->|"1. Inspect & Fetch"| B["Python Ingestion Worker"]
     
     subgraph S1 ["Step 2: Raw Persistence"]
-        B -->|"Save Unaltered Payload"| C[("PostgreSQL: raw_ingestion_responses")]
+        B -->|"INSERT (source_name, source_url, raw_payload, http_status)"| C[("PostgreSQL: raw_ingestion_responses")]
     end
     
     subgraph S2 ["Step 3: Contract & Normalise"]
-        C -->|"Read Raw Payload"| D["Source-Specific Parser"]
+        C -->|"SELECT raw_payload WHERE status='PENDING'"| D["Source-Specific Parser"]
         D -->|"Assert Essential Fields"| E{"Valid Contract?"}
         E -->|"Missing Essential Field"| F["Flag: INCOMPLETE_SOURCE"]
         E -->|"Passed"| G["Normalise Dates & Strings"]
@@ -148,9 +154,9 @@ Matching is the process of deciding that a record from a scraped source and a re
     subgraph S3 ["Step 4: Matching Against Endpoint"]
         G --> H["Matching Engine"]
         I["Structured Reference Endpoint"] -->|"Canonical Records"| H
-        H --> J{"Match Confidence Check"}
-        J -->|"High Confidence Match"| K[("PostgreSQL: matched_records (Golden)")]
-        J -->|"Ambiguous / Uncertain"| L[("PostgreSQL: review_queue (Human Review)")]
+        H --> J{"Candidate Match Count"}
+        J -->|"Exactly One Compatible Candidate"| K[("PostgreSQL: matched_records (MATCHED)")]
+        J -->|"Zero or Several Candidates"| L[("PostgreSQL: review_queue (NEEDS_REVIEW)")]
     end
 
     classDef source fill:#1a1528,stroke:#b4a0ca,stroke-width:1.5px,color:#f5effa;
@@ -166,26 +172,31 @@ Matching is the process of deciding that a record from a scraped source and a re
       },
       {
         title: 'Record Normalisation and Matching Flow',
-        caption: 'Normalising formats before comparison avoids false mismatches while review flags prevent bad data.',
+        caption: 'Decoupling raw response persistence from parsing ensures repeatable local re-runs without network dependencies.',
         code: `sequenceDiagram
     autonumber
     actor Worker as Python Pipeline Worker
+    participant Source as Source Website
     participant DB as PostgreSQL Database
     participant RefEndpoint as Reference Endpoint
 
-    Worker->>DB: INSERT INTO raw_ingestion_responses (source, url, raw_payload)
+    Worker->>Source: GET page
+    Source-->>Worker: Response (HTML or JSON)
+    Worker->>DB: INSERT INTO raw_ingestion_responses (source_name, source_url, raw_payload, http_status)
     Note over Worker,DB: Raw copy preserved before parsing
+    Worker->>DB: SELECT raw_payload WHERE status = 'PENDING'
+    DB-->>Worker: Stored raw payload
     Worker->>Worker: Parse fields according to source contract
     Worker->>Worker: Normalise date ('12 March 2026' -> '2026-03-12')
     Worker->>Worker: Normalise name ('Acme Pvt. Ltd.' -> 'acme')
     Worker->>RefEndpoint: Fetch candidate records for 'acme'
-    RefEndpoint-->>Worker: Return matching candidate records
-    alt High Confidence Match
+    RefEndpoint-->>Worker: Return candidate records
+    alt Exactly one compatible candidate
         Worker->>DB: INSERT INTO matched_records (source_record_id, reference_id, status='MATCHED')
         Note over Worker,DB: Record lined up and ready for use
-    else Uncertain or Ambiguous Match
+    else Zero or several candidates
         Worker->>DB: INSERT INTO review_queue (source_record_id, candidate_ids, status='NEEDS_REVIEW')
-        Note over Worker,DB: Never guess! Flagged for human review
+        Note over Worker,DB: Never guess. Flagged for review
     end`,
       },
     ],
@@ -231,69 +242,58 @@ def normalise_entity_name(raw_name: str) -> str:
     lowercase, strip whitespace, remove punctuation and corporate suffixes.
     """
     cleaned = raw_name.lower().strip()
-    # Remove common suffixes and punctuation for clean matching
     cleaned = re.sub(r'\\b(pvt\\.?|ltd\\.?|inc\\.?|corp\\.?|llc\\.?)\\b', '', cleaned)
     cleaned = re.sub(r'[^a-z0-9\\s]', '', cleaned)
     return re.sub(r'\\s+', ' ', cleaned).strip()
 
-def normalise_date(raw_date: Optional[str]) -> Optional[str]:
+def normalise_date(raw_date: Optional[str], formats: Optional[List[str]] = None) -> Optional[str]:
     """
-    Normalise date strings into standard ISO YYYY-MM-DD format.
+    Normalise date strings into standard ISO YYYY-MM-DD format using per-source formats.
     Leaves empty if missing, never guesses.
     """
     if not raw_date:
         return None
     
     cleaned = raw_date.strip()
-    # Try parsing common observed formats
-    for fmt in ('%d/%m/%Y', '%d %B %Y', '%Y-%m-%d', '%B %d, %Y'):
+    source_formats = formats or ['%Y-%m-%d', '%d/%m/%Y', '%d %B %Y', '%B %d, %Y']
+    for fmt in source_formats:
         try:
-            parsed = datetime.strptime(cleaned, fmt)
-            return parsed.strftime('%Y-%m-%d')
+            return datetime.strptime(cleaned, fmt).strftime('%Y-%m-%d')
         except ValueError:
             continue
-    
-    # If format is unrecognised, do not fabricate; return None
     return None
+
+def date_ok(a: Optional[str], b: Optional[str]) -> bool:
+    """
+    Dates are compatible if either is missing, or if both match exactly.
+    """
+    return a is None or b is None or a == b
 
 def match_record_against_endpoint(
     record: NormalisedRecord,
     reference_records: List[Dict[str, Any]]
 ) -> Dict[str, Any]:
     """
-    Step 4: Match normalised scraped record against structured reference endpoint records.
-    Don't force a match: if confidence is uncertain, flag for review.
+    Step 4: Match record against candidate records from reference endpoint.
+    Exactly one compatible candidate = match; zero or several = review.
+    Never guesses when ambiguous.
     """
-    best_candidate = None
-    exact_match = False
-
-    for candidate in reference_records:
-        candidate_canonical = normalise_entity_name(candidate['name'])
-        
-        # Check canonical name equivalence
-        if record.canonical_name == candidate_canonical:
-            # If dates also align or reference has matching identifier
-            if record.normalised_date and candidate.get('date'):
-                if record.normalised_date == candidate['date']:
-                    best_candidate = candidate
-                    exact_match = True
-                    break
-            else:
-                best_candidate = candidate
-                exact_match = True
-
-    if exact_match and best_candidate:
+    cands = [
+        c for c in reference_records
+        if normalise_entity_name(c["name"]) == record.canonical_name
+        and date_ok(record.normalised_date, c.get("date"))
+    ]
+    if len(cands) == 1:
         return {
             "status": "MATCHED",
-            "reference_id": best_candidate["id"],
+            "reference_id": cands[0]["id"],
             "requires_review": False
         }
-    
-    # If we cannot match with confidence, flag for review rather than guessing
     return {
         "status": "NEEDS_REVIEW",
         "reference_id": None,
-        "requires_review": True
+        "requires_review": True,
+        "candidate_ids": [c["id"] for c in cands]
     }`,
     },
     tradeOffs: [
@@ -303,31 +303,31 @@ def match_record_against_endpoint(
         drawback: 'Requires additional PostgreSQL storage capacity to retain full unparsed payloads.',
       },
       {
-        decision: 'Leaving missing fields empty (NULL) vs Guessing / interpolating missing values',
+        decision: 'Leaving missing fields empty (NULL) vs Guessing or interpolating missing values',
         advantage: 'Guarantees integrity; consumers know with certainty what the source actually provided.',
         drawback: 'Downstream queries must handle nullable fields and explicit absence rather than assuming uniform completeness.',
       },
       {
-        decision: 'Flagging uncertain matches for review vs Forcing closest fuzzy match',
+        decision: 'Requiring exactly one compatible candidate vs Forcing closest fuzzy match',
         advantage: 'Prevents corrupting the golden dataset with false-positive entity mergers.',
-        drawback: 'Requires a lightweight review step for ambiguous records that fall below confidence thresholds.',
+        drawback: 'Requires a lightweight review step for ambiguous records that have zero or multiple candidate matches.',
       },
     ],
     failureCases: [
       {
         scenario: 'Source website alters layout or element markup unexpectedly',
         impact: 'Parser fails to extract expected fields from new incoming pages.',
-        mitigation: 'Source contract checks essential fields; unedited response remains safely saved in PostgreSQL while parser is updated.',
+        mitigation: 'Raw unedited response remains safely saved in PostgreSQL; parser is updated and re-run on stored records.',
       },
       {
-        scenario: 'Two distinct entities share identical names with slight punctuation variance',
-        impact: 'Aggressive normalisation could mistakenly conflate two different real-world entities.',
-        mitigation: 'Matching evaluates composite attributes (name + date/location) and flags ambiguous candidates for review.',
+        scenario: 'Multiple reference candidates share the same canonical name and have no dates',
+        impact: 'Arbitrarily picking one would merge unrelated entities.',
+        mitigation: 'Matching enforces len(cands) == 1; if multiple candidates match, the record routes to review_queue.',
       },
       {
-        scenario: 'Ambiguous date formatting (e.g. DD/MM/YYYY vs MM/DD/YYYY)',
+        scenario: 'Ambiguous date formatting across locales (e.g. DD/MM/YYYY vs MM/DD/YYYY)',
         impact: 'Dates like "03/04/2026" could be parsed as either March 4th or April 3rd.',
-        mitigation: 'Explicit per-source date parsing configurations based on the verified locale of the source website.',
+        mitigation: 'Explicit per-source date parsing format lists passed into normalise_date based on verified source locale.',
       },
     ],
     whatILearned: `### What I Took Away
@@ -345,7 +345,7 @@ def match_record_against_endpoint(
    Not every website has every field, and pretending otherwise causes trouble later. A dataset that says *"this source never provides X"* is far more trustworthy than one that quietly fills X with a guess.
 
 5. **Don't force matches.**
-   If a scraped record and an endpoint record cannot be linked with confidence, flagging it for review is vastly better than silently corrupting your database with a wrong guess.
+   If a record has zero or multiple candidate matches, flagging it for review is vastly better than silently corrupting your database with a wrong guess.
 
 ---
 

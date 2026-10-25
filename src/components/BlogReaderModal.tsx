@@ -112,7 +112,7 @@ export const BlogReaderModal: React.FC<BlogReaderModalProps> = ({
     { id: 'architecture', label: '4. Mental Model & Architecture' },
     { id: 'implementation', label: '5. Implementation' },
     { id: 'diagrams', label: '6. System Diagrams' },
-    { id: 'code', label: '7. Code Example' },
+    { id: 'code', label: post.codeSectionTitle ? `7. ${post.codeSectionTitle.split('(')[0].trim()}` : '7. Code Example' },
     { id: 'trade-offs', label: '8. Trade-Off Analysis' },
     { id: 'failures', label: '9. Failure Modes' },
     { id: 'learned', label: '10. What I Learned' },
@@ -201,7 +201,7 @@ export const BlogReaderModal: React.FC<BlogReaderModalProps> = ({
                   fontFamily: 'var(--f-mono)',
                 }}
               >
-                By Jyotirmya Sharma · {post.readingTime}
+                {post.byline ? `${post.byline} · ${post.readingTime}` : `By Jyotirmya Sharma · ${post.readingTime}`}
               </span>
             </div>
           </div>
@@ -402,42 +402,44 @@ export const BlogReaderModal: React.FC<BlogReaderModalProps> = ({
                 <div>
                   <div style={{ fontWeight: 600, fontSize: '14.5px' }}>Jyotirmya Sharma</div>
                   <div style={{ fontSize: '12.5px', color: 'var(--fg-soft)' }}>
-                    B.Tech in CSE @ BIT Mesra · Software Engineering Intern @ ULTRATEND
+                    {post.byline ? post.byline.replace(/^By\s+/i, '') : "B.Tech in CSE @ BIT Mesra ('23) · Software Engineering Intern"}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* 2. Executive Summary Callout */}
-            <div
-              style={{
-                padding: '20px 24px',
-                borderRadius: '14px',
-                background: 'rgba(180, 160, 202, 0.08)',
-                border: '1.5px solid rgba(180, 160, 202, 0.25)',
-                marginBottom: '40px',
-              }}
-            >
+            {/* 2. Executive Summary Callout (omitted when hideSummaryCallout is set) */}
+            {!post.hideSummaryCallout && (
               <div
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                  color: 'var(--lav)',
-                  marginBottom: '8px',
+                  padding: '20px 24px',
+                  borderRadius: '14px',
+                  background: 'rgba(180, 160, 202, 0.08)',
+                  border: '1.5px solid rgba(180, 160, 202, 0.25)',
+                  marginBottom: '40px',
                 }}
               >
-                <Lightbulb size={14} />
-                Executive Summary
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    color: 'var(--lav)',
+                    marginBottom: '8px',
+                  }}
+                >
+                  <Lightbulb size={14} />
+                  Executive Summary
+                </div>
+                <div style={{ margin: 0, fontSize: '15.5px', lineHeight: '1.65', color: '#e4dcec' }}>
+                  <MarkdownProse content={post.summary} />
+                </div>
               </div>
-              <div style={{ margin: 0, fontSize: '15.5px', lineHeight: '1.65', color: '#e4dcec' }}>
-                <MarkdownProse content={post.summary} />
-              </div>
-            </div>
+            )}
 
             {/* 3. Section: Introduction */}
             <section data-section="intro" style={{ marginBottom: '48px' }}>
@@ -533,9 +535,9 @@ export const BlogReaderModal: React.FC<BlogReaderModalProps> = ({
                 6. Architecture &amp; Execution Diagrams
               </h2>
               <p style={{ fontSize: '15px', color: 'var(--fg-soft)', margin: '0 0 20px' }}>
-                The following interactive Mermaid diagrams illustrate the system state transitions,
-                network boundaries, and concurrency locks. Toggle between visual diagram rendering
-                and raw Mermaid syntax.
+                {post.id === 'b-data-ingestion-pipeline'
+                  ? 'The following interactive Mermaid diagrams illustrate the four-stage pipeline architecture and the record normalisation and matching flow. Toggle between visual diagram rendering and raw Mermaid syntax.'
+                  : 'The following interactive Mermaid diagrams illustrate the system state transitions, data flows, and component interactions. Toggle between visual diagram rendering and raw Mermaid syntax.'}
               </p>
               {post.mermaidDiagrams.map((diag, dIdx) => (
                 <MermaidDiagram
@@ -558,7 +560,7 @@ export const BlogReaderModal: React.FC<BlogReaderModalProps> = ({
                   borderBottom: '1px solid var(--line)',
                 }}
               >
-                7. Production Implementation Code
+                {post.codeSectionTitle || '7. Production Implementation Code'}
               </h2>
               <p style={{ fontSize: '15px', color: 'var(--fg-soft)', margin: '0 0 16px' }}>
                 {post.codeSnippet.description}
@@ -991,7 +993,7 @@ export const BlogReaderModal: React.FC<BlogReaderModalProps> = ({
               <div style={{ color: 'var(--fg)', fontWeight: 600, marginBottom: '2px' }}>
                 Jyotirmya Sharma
               </div>
-              <div>BIT Mesra '25 · ULTRATEND</div>
+              <div>BIT Mesra '23 · ULTRATEND</div>
               <div style={{ color: 'var(--lav)', marginTop: '4px', fontFamily: 'var(--f-mono)', fontSize: '11px' }}>
                 Backend &amp; AI Infrastructure
               </div>

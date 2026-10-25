@@ -141,7 +141,18 @@ function splitIntoBlocks(raw: string): Block[] {
         if (itemMatch) {
           items.push(itemMatch[2].trim());
           i++;
-        } else if (lines[i].trim() && lines[i].startsWith('   ') && items.length > 0) {
+        } else if (
+          lines[i].trim() === '' &&
+          i + 1 < lines.length &&
+          lines[i + 1].match(/^(\d+)\.\s+(.+)$/)
+        ) {
+          // Allow blank line between numbered list items without breaking the list
+          i++;
+        } else if (
+          lines[i].trim() &&
+          (lines[i].startsWith('   ') || lines[i].startsWith('  ') || lines[i].startsWith('\t')) &&
+          items.length > 0
+        ) {
           // Multiline list item continuation
           items[items.length - 1] += ' ' + lines[i].trim();
           i++;
@@ -166,7 +177,18 @@ function splitIntoBlocks(raw: string): Block[] {
         if (itemMatch) {
           items.push(itemMatch[1].trim());
           i++;
-        } else if (lines[i].trim() && lines[i].startsWith('   ') && items.length > 0) {
+        } else if (
+          lines[i].trim() === '' &&
+          i + 1 < lines.length &&
+          lines[i + 1].match(/^[-*+]\s+(.+)$/)
+        ) {
+          // Allow blank line between bullet items without breaking the list
+          i++;
+        } else if (
+          lines[i].trim() &&
+          (lines[i].startsWith('   ') || lines[i].startsWith('  ') || lines[i].startsWith('\t')) &&
+          items.length > 0
+        ) {
           items[items.length - 1] += ' ' + lines[i].trim();
           i++;
         } else {

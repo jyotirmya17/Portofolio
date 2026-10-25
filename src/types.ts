@@ -52,6 +52,9 @@ export interface BlogPost {
     caption: string;
     code: string;
   }[];
+  codeSectionTitle?: string;
+  hideSummaryCallout?: boolean;
+  byline?: string;
   codeSnippet: {
     language: string;
     filename: string;
